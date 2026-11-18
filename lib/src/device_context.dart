@@ -47,16 +47,94 @@ class DeviceContext {
     if (_present(buildNumber)) '__buildNumber': buildNumber!,
   };
 
-  /// A `name/version (os version; model)` agent. The server only uses it to
-  /// fingerprint the device when the event carries no `__deviceId`, which
-  /// this client always sends; it is set so its logs say who called.
+  /// A `name/version (os version; model)` agent, in printable ASCII.
+  ///
+  /// HTTP headers take nothing else: an app named `Películas+` or a model
+  /// with Chinese characters makes the request fail before it leaves, and
+  /// every event behind it with it. Accents are folded (`Peliculas+`), the
+  /// rest becomes `_`.
+  ///
+  /// macOS is spelled `Mac OS X 15.1`, which is how the server's
+  /// user-agent parser recognises it; `macOS 15.1` reads as a server.
   String get userAgent {
+    final system = os == 'macOS' ? 'Mac OS X' : os;
     final details = [
-      [os, ?osVersion].join(' '),
+      [system, ?osVersion].join(' '),
       ?model,
     ].join('; ');
-    return '${appName ?? 'app'}/${appVersion ?? '0'} ($details)';
+    return asciiHeaderValue(
+      '${appName ?? 'app'}/${appVersion ?? '0'} ($details)',
+    );
   }
 
   static bool _present(String? value) => value != null && value.isNotEmpty;
+}
+
+const _folds = {
+  'á': 'a',
+  'à': 'a',
+  'ä': 'a',
+  'â': 'a',
+  'ã': 'a',
+  'å': 'a',
+  'é': 'e',
+  'è': 'e',
+  'ë': 'e',
+  'ê': 'e',
+  'í': 'i',
+  'ì': 'i',
+  'ï': 'i',
+  'î': 'i',
+  'ó': 'o',
+  'ò': 'o',
+  'ö': 'o',
+  'ô': 'o',
+  'õ': 'o',
+  'ú': 'u',
+  'ù': 'u',
+  'ü': 'u',
+  'û': 'u',
+  'ñ': 'n',
+  'ç': 'c',
+  'Á': 'A',
+  'À': 'A',
+  'Ä': 'A',
+  'Â': 'A',
+  'Ã': 'A',
+  'Å': 'A',
+  'É': 'E',
+  'È': 'E',
+  'Ë': 'E',
+  'Ê': 'E',
+  'Í': 'I',
+  'Ì': 'I',
+  'Ï': 'I',
+  'Î': 'I',
+  'Ó': 'O',
+  'Ò': 'O',
+  'Ö': 'O',
+  'Ô': 'O',
+  'Õ': 'O',
+  'Ú': 'U',
+  'Ù': 'U',
+  'Ü': 'U',
+  'Û': 'U',
+  'Ñ': 'N',
+  'Ç': 'C',
+};
+
+/// [value] reduced to what an HTTP header may carry: printable ASCII, with
+/// common Latin accents folded and anything else replaced by `_`.
+@visibleForTesting
+String asciiHeaderValue(String value) {
+  final out = StringBuffer();
+  for (final rune in value.runes) {
+    final char = String.fromCharCode(rune);
+    if (rune >= 0x20 && rune <= 0x7e) {
+      out.write(char);
+    } else {
+      out.write(_folds[char] ?? '_');
+    }
+  }
+  return out.toString();
 }

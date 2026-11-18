@@ -2,6 +2,8 @@
 library;
 
 import 'package:openpanel_client/openpanel_client.dart';
+import 'package:openpanel_client/src/client.dart'
+    show isValidAvatar, isValidEmail, isValidEventName;
 
 /// One call an app made on a [FakeOpenPanel].
 typedef RecordedCall = ({
@@ -56,6 +58,9 @@ class FakeOpenPanel implements OpenPanel {
   Duration get requestTimeout => Duration.zero;
 
   @override
+  Duration get persistDelay => Duration.zero;
+
+  @override
   void Function(String message)? get logger => null;
 
   @override
@@ -75,7 +80,7 @@ class FakeOpenPanel implements OpenPanel {
 
   @override
   void track(String name, {Map<String, Object?>? properties}) {
-    if (!_enabled) return;
+    if (!_enabled || !isValidEventName(name)) return;
     calls.add((method: 'track', name: name, args: {...?properties}));
   }
 
@@ -95,6 +100,7 @@ class FakeOpenPanel implements OpenPanel {
     String? avatar,
     Map<String, Object?>? properties,
   }) {
+    if (profileId.isEmpty) return;
     _profileId = profileId;
     if (!_enabled) return;
     calls.add((
@@ -103,8 +109,8 @@ class FakeOpenPanel implements OpenPanel {
       args: {
         'firstName': ?firstName,
         'lastName': ?lastName,
-        'email': ?email,
-        'avatar': ?avatar,
+        if (email != null && isValidEmail(email)) 'email': email,
+        if (avatar != null && isValidAvatar(avatar)) 'avatar': avatar,
         'properties': ?properties,
       },
     ));
@@ -125,7 +131,7 @@ class FakeOpenPanel implements OpenPanel {
       _counter('decrement', property, value);
 
   void _counter(String method, String property, num value) {
-    if (!_enabled || _profileId == null) return;
+    if (!_enabled || _profileId == null || value <= 0) return;
     calls.add((method: method, name: property, args: {'value': value}));
   }
 
@@ -143,6 +149,9 @@ class FakeOpenPanel implements OpenPanel {
 
   @override
   Future<void> flush() async {}
+
+  @override
+  Future<void> persist() async {}
 
   @override
   Future<void> dispose() async {}

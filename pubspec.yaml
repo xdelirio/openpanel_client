@@ -3,7 +3,7 @@ description: >-
   OpenPanel analytics for Flutter apps on every platform: events, screens and
   profiles, queued on disk while offline and sent in order with their real
   time. Pure-Dart core; device detection and navigation helpers for Flutter.
-version: 0.1.0
+version: 0.2.0
 publish_to: none
 
 environment:
@@ -14,7 +14,7 @@ dependencies:
   device_info_plus: ^13.0.0
   flutter:
     sdk: flutter
-  http: ^1.2.0
+  http: ^1.5.0
   meta: ^1.16.0
   package_info_plus: ^10.0.0
 

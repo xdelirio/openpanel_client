@@ -59,7 +59,7 @@ Future<_Fields> _deviceFields() async {
           os: 'Android',
           osVersion: a.version.release,
           model: a.model,
-          brand: a.manufacturer,
+          brand: brandName(a.manufacturer),
           kind: a.systemFeatures.contains('android.software.leanback')
               ? DeviceKind.smarttv
               : DeviceKind.mobile,
@@ -91,7 +91,7 @@ Future<_Fields> _deviceFields() async {
           osVersion: w.displayVersion.isNotEmpty
               ? w.displayVersion
               : '${w.majorVersion}.${w.minorVersion}.${w.buildNumber}',
-          model: w.productName,
+          model: windowsProductName(w.productName, w.buildNumber),
           brand: null,
           kind: DeviceKind.desktop,
         );
@@ -118,3 +118,21 @@ Future<_Fields> _deviceFields() async {
     kind: null,
   );
 }
+
+/// [manufacturer] as a brand is written: Android reports some in lower case
+/// (`samsung`, `xiaomi`), which the dashboard would list apart from the same
+/// brand parsed from a browser.
+@visibleForTesting
+String brandName(String manufacturer) {
+  final trimmed = manufacturer.trim();
+  if (trimmed.isEmpty || trimmed != trimmed.toLowerCase()) return trimmed;
+  return trimmed[0].toUpperCase() + trimmed.substring(1);
+}
+
+/// The registry keeps calling Windows 11 "Windows 10" in its product name;
+/// the build number is what tells them apart (22000 and up is 11).
+@visibleForTesting
+String windowsProductName(String productName, int build) =>
+    build >= 22000 && productName.startsWith('Windows 10')
+    ? productName.replaceFirst('Windows 10', 'Windows 11')
+    : productName;

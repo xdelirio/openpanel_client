@@ -5,6 +5,32 @@ import 'package:openpanel_client/openpanel_client.dart';
 import 'package:openpanel_client/testing.dart';
 
 void main() {
+  test('the user agent is ASCII, and macOS reads as macOS', () {
+    const app = DeviceContext(
+      os: 'Android',
+      osVersion: '14',
+      model: '小米盒子',
+      appName: 'Películas+',
+      appVersion: '1.0',
+    );
+    expect(app.userAgent, 'Peliculas+/1.0 (Android 14; ____)');
+
+    const mac = DeviceContext(
+      os: 'macOS',
+      osVersion: '15.1.0',
+      appVersion: '2',
+    );
+    expect(mac.userAgent, 'app/2 (Mac OS X 15.1.0)');
+  });
+
+  test('brand and Windows names as people write them', () {
+    expect(brandName('samsung'), 'Samsung');
+    expect(brandName('Google'), 'Google');
+    expect(brandName(''), '');
+    expect(windowsProductName('Windows 10 Pro', 22631), 'Windows 11 Pro');
+    expect(windowsProductName('Windows 10 Pro', 19045), 'Windows 10 Pro');
+  });
+
   test('DeviceContext states only what it knows', () {
     const context = DeviceContext(os: 'Linux', kind: DeviceKind.desktop);
     expect(context.toProperties(), {'__os': 'Linux', '__device': 'desktop'});
@@ -74,5 +100,15 @@ void main() {
       ..identify('v');
     expect(panel.calls.map((c) => c.method), ['identify', 'increment']);
     expect(panel.profileId, 'v');
+  });
+
+  test('the fake drops the names and traits the real client drops', () {
+    final panel = FakeOpenPanel()
+      ..track('session_start')
+      ..track('')
+      ..identify('u', email: 'nope', avatar: 'ftp://x')
+      ..track('ok');
+    expect(panel.events, ['ok']);
+    expect(panel.calls.firstWhere((c) => c.method == 'identify').args, isEmpty);
   });
 }
